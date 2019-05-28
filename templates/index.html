@@ -10,6 +10,9 @@
     <title>Carousel Template · Bootstrap</title>
 
     <link rel="canonical" href="">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" integrity="sha384-oS3vJWv+0UjzBfQzYUhtDYW+Pj2yciDJxpsK1OYPAYjqT085Qq/1cq5FLXAZQ7Ay" crossorigin="anonymous">
+
+
 
     <!-- Bootstrap core CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
@@ -46,24 +49,43 @@
     <main role="main">
 
       <div id="myCarousel" class="carousel slide" data-ride="carousel">
+
         <ol class="carousel-indicators">
           {% for t in tweets %}
             <li data-target="#myCarousel" data-slide-to="{{loop.index - 1}}" class="{% if loop.index == 1%}active{% endif %}"></li>
           {% endfor %}
         </ol>
+
         <div class="carousel-inner">
+
           {% for t in tweets %}
             <div class="carousel-item {% if loop.index == 1%}active{% endif %}">
               <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice" focusable="false" role="img"><rect width="100%" height="100%" fill="#f2f2f2"></rect></svg>
               <div class="container">
                 <div class="carousel-caption">
+
                   <h2>{{tweets[t]['user']['screen_name']}}</h2>
                   <p>{{tweets[t]['full_text']}}</p>
-                  <p><a class="btn btn btn-success" href="#" role="button">Positivo</a>  <a class="btn btn btn-danger" href="#" role="button">Negativo</a></p>
+                  <!-- <p><a class="btn btn btn-success" href="#" role="button">Positivo</a>  <a class="btn btn btn-danger" href="#" role="button">Negativo</a></p> -->
+
+                  <p>{% for i in [1,2,3,4,5] %}
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input checkbox-rating" type="radio" name="{{ tweets[t]['id_str'] }}-rating" id="{{ tweets[t]['id_str'] }}-star-{{ i }}-check" value="option1" style="">
+                      <label class="form-check-label" for="inlineCheckbox1">
+                        <span class="change-icon">
+                          <i class="far fa-star rating" id="{{ tweets[t]['id_str'] }}-star-{{ i }}" onclick="clickSelect('{{ tweets[t]['id_str'] }}-star-{{ i }}-check')"></i>
+                          <i class="fas fa-star rating" id="{{ tweets[t]['id_str'] }}-star-{{ i }}" onclick="clickSelect('{{ tweets[t]['id_str'] }}-star-{{ i }}-check')"></i>
+                        </span>
+                      </label>
+                    </div>
+                  {% endfor %}
+                  </p>
+
                 </div>
               </div>
-            </div>
+            </div> <!-- carousel item -->
           {% endfor %}
+
         </div>
         <a class="carousel-control carousel-control-prev" href="#myCarousel" role="button" data-slide="prev">
           <span class="carousel-control carousel-control-prev-icon" aria-hidden="true"></span>
@@ -87,8 +109,9 @@
       </footer>
     </main>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='carousel.js') }}"></script>
 
   </body>
 </html>

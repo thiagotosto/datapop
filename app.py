@@ -39,7 +39,7 @@ def classifyTweet(id):
 def index():
     tweets_str = rq.get('http://localhost:5000/get_tweets_sample').text
     tweets =  json.loads(tweets_str)
-
+    
     return render_template('index.html', tweets=tweets)
     #return "Hello"
 
