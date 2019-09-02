@@ -9,17 +9,72 @@ import os
 import requests as rq
 import json
 import ast
-
-
+import redis
+from utils import Utils
 
 app = Flask(__name__)
 
 app.secret_key = 'likujnyhtbgrvf67543'
 
 
-@app.route('/login/' methods=['POST'])
+def checkToken():
+    r = redis.Redis(host='localhost', port='6379', db=0)
+
+    #print('Session Keys: {}'.format(session.keys()))
+
+    if 'user' not in session.keys() or 'token' not in session.keys():
+        #print('False 1')
+        return False
+
+    r_user = r.get(session['user'])
+
+    if not r_user:
+        return False
+    if str(session['token']) != str(r_user.decode('utf-8')):
+        #print('{} : {}'.format(session['token'], r.get(session['user']).decode('utf-8')))
+        #print('False 2')
+        return False
+
+    return True
+
+@app.route('/')
+def index():
+    #checando se usuario eta logado
+    if not checkToken():
+        return render_template('login.html')
+
+    tweets_str = rq.get('http://localhost:5000/get_tweets_sample').text
+    tweets =  json.loads(tweets_str)
+
+    return render_template('index.html', tweets=tweets, session=session)
+
+
+@app.route('/login/', methods=['POST'])
 def login():
-    
+    #instanciando bancos
+    r = redis.Redis(host='localhost', port='6379', db=0)
+    mg_client = MongoClient('localhost', 27017)
+    users = mg_client.datapop.users
+
+    #recolhendo dados do formulario
+    credentials = request.form.to_dict()
+
+    #buscando usuario
+    user = users.find_one({'user': credentials['user']})
+
+    #checando se usuario existe e se senha corresponde
+    if user:
+        if user['password'] == credentials['password']:
+            #gerando token
+            token = Utils.generateKey(15)
+
+            #guardando token do usuario
+            r.set(credentials['user'], token, ex=7200)
+            session['user'] = credentials['user']
+            session['token'] = token
+            session['name'] = user['name']
+
+    return redirect(url_for('index'))
 
 @app.route('/get_tweets_sample')
 def getTweetsSample():
@@ -30,6 +85,10 @@ def getTweetsSample():
 
 @app.route('/classify_tweet/', methods=['POST'])
 def classifyTweet():
+    #checando se usuario eta logado
+    if not checkToken():
+        return render_template('login.html')
+
     #recolhendo dados do formulario
     tweet_ids = request.form.to_dict()
 
@@ -53,12 +112,11 @@ def classifyTweet():
 
     return redirect(url_for('index'))
 
-@app.route('/')
-def index():
-    tweets_str = rq.get('http://localhost:5000/get_tweets_sample').text
-    tweets =  json.loads(tweets_str)
+@app.route('/logout/')
+def logout():
+    session.clear()
 
-    return render_template('index.html', tweets=tweets)
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     app.run(debug=True)
