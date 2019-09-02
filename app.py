@@ -102,6 +102,9 @@ def classifyTweet():
         tweet = tweets.find_one({'id_str': tweet_id})
 
         if tweets.delete_one({"_id": tweet['_id']}):
+            #setando dono da classificação
+            tweet['classified_by'] = session['name']
+
             #setando nota
             tweet['rate'] = tweet_ids[tweet_id]
 
