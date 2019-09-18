@@ -11,6 +11,8 @@ import json
 import ast
 import redis
 from utils import Utils
+from DAO.mongo import Mongo
+from  pymongo.errors import AutoReconnect
 
 app = Flask(__name__)
 
@@ -20,10 +22,7 @@ app.secret_key = 'likujnyhtbgrvf67543'
 def checkToken():
     r = redis.Redis(host='localhost', port='6379', db=0)
 
-    #print('Session Keys: {}'.format(session.keys()))
-
     if 'user' not in session.keys() or 'token' not in session.keys():
-        #print('False 1')
         return False
 
     r_user = r.get(session['user'])
@@ -31,8 +30,6 @@ def checkToken():
     if not r_user:
         return False
     if str(session['token']) != str(r_user.decode('utf-8')):
-        #print('{} : {}'.format(session['token'], r.get(session['user']).decode('utf-8')))
-        #print('False 2')
         return False
 
     return True
@@ -53,14 +50,22 @@ def index():
 def login():
     #instanciando bancos
     r = redis.Redis(host='localhost', port='6379', db=0)
-    mg_client = MongoClient('localhost', 27017)
+    #mg_client = MongoClient('localhost', 27017)
+    mongo = Mongo('cfg/config.cfg')
+    mg_client = mongo.connect()
     users = mg_client.datapop.users
 
     #recolhendo dados do formulario
     credentials = request.form.to_dict()
 
     #buscando usuario
-    user = users.find_one({'user': credentials['user']})
+    while(True):
+        try:
+            user = users.find_one({'user': credentials['user']})
+            break
+        except AutoReconnect:
+            print("AUTO RECONECT \n")
+
 
     #checando se usuario existe e se senha corresponde
     if user:
@@ -78,10 +83,19 @@ def login():
 
 @app.route('/get_tweets_sample')
 def getTweetsSample():
-    mg_client = MongoClient('localhost', 27017)
+    #mg_client = MongoClient('localhost', 27017)
+    mongo = Mongo("cfg/config.cfg")
+    mg_client = mongo.connect()
     tweets = mg_client.datapop.tweets_to_classify
 
-    return json.dumps({str(obj['_id']): {i:obj[i] for i in obj if i != '_id'} for obj in tweets.aggregate([{'$sample': {'size': 3}}])})
+    while(True):
+        try:
+            sample = json.dumps({str(obj['_id']): {i:obj[i] for i in obj if i != '_id'} for obj in tweets.aggregate([{'$sample': {'size': 3}}])})
+            break
+        except AutoReconnect:
+            print('AUTO RECONNECT')
+
+    return sample
 
 @app.route('/classify_tweet/', methods=['POST'])
 def classifyTweet():
@@ -93,25 +107,32 @@ def classifyTweet():
     tweet_ids = request.form.to_dict()
 
     #instanciando banco
-    mg_client = MongoClient('localhost', 27017)
+    #mg_client = MongoClient('localhost', 27017)
+    mongo = Mongo("cfg/config.cfg")
+    mg_client = mongo.connect()
     tweets = mg_client.datapop.tweets_to_classify
     tweets_classified = mg_client.datapop.tweets_classified
 
     #trocando tweet de lugar
     for tweet_id in tweet_ids.keys():
-        tweet = tweets.find_one({'id_str': tweet_id})
+        while(True):
+            try:
+                tweet = tweets.find_one({'id_str': tweet_id})
 
-        if tweets.delete_one({"_id": tweet['_id']}):
-            #setando dono da classificação
-            tweet['classified_by'] = session['name']
+                if tweets.delete_one({"_id": tweet['_id']}):
+                    #setando dono da classificação
+                    tweet['classified_by'] = session['name']
 
-            #setando nota
-            tweet['rate'] = tweet_ids[tweet_id]
+                    #setando nota
+                    tweet['rate'] = tweet_ids[tweet_id]
 
-            #setando sentimento
-            tweet['sentiment'] = 'positive' if int(tweet['rate']) > 3 else 'negative' if int(tweet['rate']) < 3 else 'neutral'
+                    #setando sentimento
+                    tweet['sentiment'] = 'positive' if int(tweet['rate']) > 3 else 'negative' if int(tweet['rate']) < 3 else 'neutral'
 
-            tweets_classified.insert_one(tweet)
+                    tweets_classified.insert_one(tweet)
+                    break
+            except AutoReconnect:
+                print('AUTO RECONNECT')
 
     return redirect(url_for('index'))
 
